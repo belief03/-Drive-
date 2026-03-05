@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}固定費 - 青色申告 帳簿ツール{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>固定費（毎月自動反映）</h1>
+  <p class="help">通信費・家賃など毎月同じ金額の経費を登録しておくと、指定月に一括で取引を自動作成できます。計上日は目安です。引き落とし日が曜日でずれる場合は、反映後に取引一覧から日付を修正してください。</p>
+  {% if request.args.get('applied') %}
+  <p class="alert alert-info">{{ request.args.get('applied') }}件の固定費を{{ request.args.get('year') }}年{{ request.args.get('month') }}月に反映しました。</p>
+  {% endif %}
+  {% if 'auto_applied' in request.args %}
+  <p class="alert alert-info">今月の固定費を自動反映しました（{{ request.args.get('auto_applied') }}件）。</p>
+  {% endif %}
+  <p>
+    <a href="{{ url_for('recurring.new') }}" class="btn">固定費を追加</a>
+    <a href="{{ url_for('recurring.apply') }}" class="btn">今月の固定費を反映</a>
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>名称</th>
+        <th>金額</th>
+        <th>勘定科目</th>
+        <th>支払方法</th>
+        <th>毎月の日付</th>
+        <th>状態</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in items %}
+      <tr>
+        <td>{{ r.name }}</td>
+        <td>{{ r.amount | int }}円</td>
+        <td>{{ r.debit_account.name if r.debit_account else '' }}</td>
+        <td>{{ r.credit_account.name if r.credit_account else '' }}</td>
+        <td>毎月{{ r.day_of_month }}日</td>
+        <td>{% if r.is_active %}有効{% else %}無効{% endif %}</td>
+        <td>
+          <a href="{{ url_for('recurring.edit', id=r.id) }}">修正</a>
+          <form method="post" action="{{ url_for('recurring.delete', id=r.id) }}" style="display:inline;" onsubmit="return confirm('削除しますか？');">
+            <button type="submit" class="btn btn-secondary" style="padding:0.2rem 0.5rem;font-size:0.8rem;">削除</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7">固定費が登録されていません。「固定費を追加」から登録してください。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

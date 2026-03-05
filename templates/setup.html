@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}初期設定 - 青色申告 帳簿ツール{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>初期設定</h1>
+  <p>業種を選択してください。状況が変わった場合は設定画面からいつでも変更できます。</p>
+  <form method="post" action="{{ url_for('main.setup') }}">
+    <label for="industry">業種</label>
+    <select name="industry" id="industry" required>
+      <option value="">選択してください</option>
+      {% for ind in industries %}
+      <option value="{{ ind.name }}" {% if current == ind.name %}selected{% endif %}>{{ ind.name }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit">保存して開始</button>
+  </form>
+</div>
+{% endblock %}

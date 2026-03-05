@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}CSV取込（Googleドライブから） - 青色申告 帳簿ツール{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>CSV取込（Googleドライブから）</h1>
+  {% if not drive_available %}
+  <p class="alert alert-warning">Googleドライブ連携が有効になっていません。設定でクライアントID・シークレットを設定し、連携してください。</p>
+  <p><a href="{{ url_for('csv_import.upload') }}">CSV取込に戻る</a></p>
+  {% elif drive_connected is defined and not drive_connected %}
+  <p class="alert alert-warning">Googleドライブと連携してください。<a href="{{ url_for('settings.index') }}">設定</a>で「連携する」を実行してください。</p>
+  <p><a href="{{ url_for('csv_import.upload') }}">CSV取込に戻る</a></p>
+  {% else %}
+  <p class="help">ドライブ内のフォルダにあるCSVを選んで、本システムに取込めます。フォルダを開いたときのURLの <code>folders/</code> の後ろがフォルダIDです。例: <code>https://drive.google.com/drive/folders/1ABC...xyz</code> → フォルダIDは <code>1ABC...xyz</code></p>
+  <p class="help">フォルダ一覧が出ない・「権限がありません」となる場合は、<a href="{{ url_for('settings.index') }}">設定</a>で一度「連携を解除」してから「連携する」をやり直してください（ドライブの読み取り権限が付与されます）。</p>
+  <form method="get" action="{{ url_for('csv_import.from_drive') }}" style="margin-bottom:1rem;">
+    <label for="folder_id">フォルダID</label>
+    <input type="text" name="folder_id" id="folder_id" value="{{ folder_id or '' }}" placeholder="1ABC...xyz" style="width:100%; max-width:400px;" required>
+    <button type="submit" class="btn">フォルダ内のファイルを表示</button>
+  </form>
+  <p class="help">フォルダIDは、ドライブでフォルダを開いたときのURLの <code>drive.google.com/.../folders/</code> の<strong>直後</strong>の文字列です。URLをそのまま貼っても、ID部分だけ使います。</p>
+  {% if folder_id %}
+  <h2>結果（フォルダID: {{ folder_id[:20] }}{% if folder_id|length > 20 %}…{% endif %}）</h2>
+  {% if error %}
+  <p class="alert alert-warning">{{ error }}</p>
+  <p class="help">「権限がありません」「403」などの場合は、<a href="{{ url_for('settings.index') }}">設定</a>で「連携を解除」→「連携する」をやり直してください。</p>
+  {% elif csv_files is defined %}
+    {% if csv_files or other_files %}
+    {% if csv_files %}
+    <p class="help">CSVファイル（取込に使えます）</p>
+    <ul>
+      {% for f in csv_files %}
+      <li><a href="{{ url_for('csv_import.from_drive_pick', file_id=f.id, filename=f.name) }}">{{ f.name }}</a> … このファイルを取込</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+    {% if other_files %}
+    <p class="help">その他のファイル</p>
+    <ul>
+      {% for f in other_files %}
+      <li>{{ f.name }}（CSV以外のため取込対象外）</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+    {% else %}
+    <p class="help">このフォルダにファイルはありません。フォルダIDを確認するか、別のフォルダを指定してください。</p>
+    {% endif %}
+  {% endif %}
+  {% endif %}
+  <p><a href="{{ url_for('csv_import.upload') }}">CSV取込（ファイルアップロード）に戻る</a></p>
+  <p class="help">ドライブのフォルダにある<strong>画像（PNG・JPG）を領収書として取込む</strong>場合は、<a href="{{ url_for('transactions.receipts_from_drive') }}">領収書をドライブから取込</a>をご利用ください。</p>
+  {% endif %}
+</div>
+{% endblock %}

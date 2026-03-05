@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}科目のヒント - 青色申告 帳簿ツール{% endblock %}
+{% block extra_css %}
+<style>
+  .hints-table { margin-top: 1rem; }
+  .hints-table th, .hints-table td { padding: 0.5rem 0.75rem; border: 1px solid var(--border); }
+  .hints-table th { background: var(--bg); }
+  .no-print { }
+  @media print {
+    body { background: #fff; }
+    nav, .no-print, .btn { display: none !important; }
+    .container { max-width: none; }
+    .card { box-shadow: none; border: 1px solid #ddd; }
+    .hints-table { font-size: 0.9rem; }
+  }
+</style>
+{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>科目のヒント一覧</h1>
+  <p class="help">「こんな取引はどの勘定科目？」の目安です。印刷して手元に置いても使えます。</p>
+  <p class="no-print">
+    <button type="button" onclick="window.print();" class="btn">印刷する</button>
+  </p>
+  <table class="hints-table">
+    <thead>
+      <tr>
+        <th>取引の例</th>
+        <th>おすすめの勘定科目</th>
+        <th>補足</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for h in hints %}
+      <tr>
+        <td>{{ h.example }}</td>
+        <td>{{ h.account }}</td>
+        <td>{{ h.note if h.note else '—' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

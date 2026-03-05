@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}領収書をドライブから取込 - 青色申告 帳簿ツール{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>領収書をドライブから取込</h1>
+  {% if not drive_available %}
+  <p class="alert alert-warning">Googleドライブ連携が有効になっていません。設定でクライアントID・シークレットを設定し、連携してください。</p>
+  <p><a href="{{ url_for('transactions.list_transactions') }}">取引一覧に戻る</a></p>
+  {% elif drive_connected is defined and not drive_connected %}
+  <p class="alert alert-warning">Googleドライブと連携してください。<a href="{{ url_for('settings.index') }}">設定</a>で「連携する」を実行してください。</p>
+  <p><a href="{{ url_for('transactions.list_transactions') }}">取引一覧に戻る</a></p>
+  {% else %}
+  <p class="help">ドライブのフォルダにある画像（PNG・JPGなど）を選ぶと、<strong>領収書付きの経費取引</strong>が1件作成され、編集画面に移ります。日付・金額・勘定科目を入力して保存してください。</p>
+  <p class="help">フォルダIDは、ドライブでフォルダを開いたときのURLの <code>folders/</code> の直後の文字列です。URLをそのまま貼っても構いません。</p>
+  <form method="get" action="{{ url_for('transactions.receipts_from_drive') }}" style="margin-bottom:1rem;">
+    <label for="folder_id">フォルダID</label>
+    <input type="text" name="folder_id" id="folder_id" value="{{ folder_id or '' }}" placeholder="1ABC...xyz" style="width:100%; max-width:400px;" required>
+    <button type="submit" class="btn">フォルダ内の画像を表示</button>
+  </form>
+  {% if folder_id %}
+  <h2>結果（フォルダID: {{ folder_id[:20] }}{% if folder_id|length > 20 %}…{% endif %}）</h2>
+  {% if error %}
+  <p class="alert alert-warning">{{ error }}</p>
+  <p class="help">「権限がありません」の場合は、<a href="{{ url_for('settings.index') }}">設定</a>で「連携を解除」→「連携する」をやり直してください。</p>
+  {% elif image_files is defined %}
+    {% if image_files %}
+    <p class="help">画像（領収書として取込めます）</p>
+    <ul>
+      {% for f in image_files %}
+      <li><a href="{{ url_for('transactions.receipts_from_drive_pick', file_id=f.id, filename=f.name) }}">{{ f.name }}</a> … 領収書として取込（経費取引を1件作成）</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+    {% if other_files %}
+    <p class="help">その他のファイル（画像以外は取込対象外）</p>
+    <ul>
+      {% for f in other_files %}
+      <li>{{ f.name }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+    {% if not image_files and not other_files %}
+    <p class="help">このフォルダにファイルはありません。フォルダIDを確認するか、別のフォルダを指定してください。</p>
+    {% endif %}
+  {% endif %}
+  {% endif %}
+  <p><a href="{{ url_for('transactions.list_transactions') }}">取引一覧に戻る</a></p>
+  {% endif %}
+</div>
+{% endblock %}

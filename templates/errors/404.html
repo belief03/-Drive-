@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}ページが見つかりません - 青色申告 帳簿ツール{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>ページが見つかりません</h1>
+  <p>要求されたURLはこのサーバー上にありません。アドレスを確認するか、下のリンクから移動してください。</p>
+  <p>
+    <a href="{{ url_for('main.index') }}" class="btn">トップへ</a>
+    <a href="{{ url_for('transactions.list_transactions') }}" class="btn btn-secondary">取引一覧</a>
+    <a href="{{ url_for('settings.index') }}" class="btn btn-secondary">設定</a>
+  </p>
+</div>
+{% endblock %}

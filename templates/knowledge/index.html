@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}知識・豆知識 - 青色申告 帳簿ツール{% endblock %}
+{% block extra_css %}
+<style>
+  .knowledge-item { margin-bottom: 1.25rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+  .knowledge-item:last-child { border-bottom: none; }
+  .knowledge-title { font-weight: 600; margin-bottom: 0.35rem; }
+  .knowledge-summary { color: var(--text); margin-bottom: 0.5rem; }
+  .knowledge-detail { font-size: 0.9rem; color: var(--muted); line-height: 1.5; }
+  .disclaimer { margin-top: 1.5rem; padding: 0.75rem; background: var(--bg); border-radius: 6px; font-size: 0.85rem; color: var(--muted); }
+  @media print {
+    nav, .no-print { display: none !important; }
+    .knowledge-item { break-inside: avoid; }
+  }
+</style>
+{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>知識・豆知識</h1>
+  <p class="help">青色申告や経費計上でよくある疑問の目安です。税務の確定は税理士または所轄税務署にご確認ください。</p>
+  <p class="no-print">
+    <button type="button" onclick="window.print();" class="btn">印刷する</button>
+  </p>
+
+  {% for item in items %}
+  <div class="knowledge-item">
+    <div class="knowledge-title">{{ item.title }}</div>
+    <div class="knowledge-summary">{{ item.summary }}</div>
+    {% if item.detail %}
+    <div class="knowledge-detail">{{ item.detail }}</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+  <div class="disclaimer">
+    <strong>ご注意：</strong> 上記は一般的な内容の参考です。法令・要件は変更されることがあります。申告の確定は税理士または所轄税務署にご確認ください。
+  </div>
+</div>
+{% endblock %}

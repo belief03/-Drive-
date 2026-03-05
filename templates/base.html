@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}あおいろサポート｜青色申告 帳簿ツール{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --paper: #faf8f3;
+      --sheet: #fffef9;
+      --ink: #2c2416;
+      --ink-muted: #5c5346;
+      --line: #d4cfc4;
+      --line-strong: #b8b0a0;
+      --ledger-head: #e8e4dc;
+      --ledger-stripe: #f5f3ee;
+      --primary: #1a5f4a;
+      --primary-hover: #0f4435;
+      --danger: #b91c1c;
+      --red-ink: #8b2500;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Noto Serif JP', 'Yu Mincho', 'Hiragino Mincho ProN', serif;
+      background: var(--paper);
+      background-image: repeating-linear-gradient(
+        transparent,
+        transparent 31px,
+        rgba(212, 207, 196, 0.35) 31px,
+        rgba(212, 207, 196, 0.35) 32px
+      );
+      background-attachment: local;
+      color: var(--ink);
+      margin: 0;
+      min-height: 100vh;
+      line-height: 1.7;
+      font-size: 15px;
+    }
+    .container { max-width: 960px; margin: 0 auto; padding: 1.5rem; }
+    nav {
+      background: var(--ink);
+      color: var(--sheet);
+      padding: 0.6rem 1rem;
+      border-bottom: 3px solid var(--primary);
+      font-weight: 500;
+    }
+    nav a {
+      color: #e8e4dc;
+      text-decoration: none;
+      margin-right: 1.25rem;
+      font-size: 0.95rem;
+    }
+    nav a:hover { color: #fff; text-decoration: underline; }
+    nav a[style*="font-weight"] { color: #fff; }
+    .card {
+      background: var(--sheet);
+      border: 1px solid var(--line-strong);
+      border-radius: 2px;
+      box-shadow: 0 1px 4px rgba(44,36,22,.06);
+      padding: 1.75rem;
+      margin-bottom: 1.5rem;
+      position: relative;
+    }
+    .card::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 4px;
+      background: var(--primary);
+      border-radius: 2px 0 0 2px;
+    }
+    h1 {
+      font-size: 1.35rem;
+      margin-top: 0;
+      font-weight: 600;
+      color: var(--ink);
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    h2 { font-size: 1.15rem; color: var(--ink); margin: 1.25rem 0 0.5rem; font-weight: 600; }
+    label { display: block; margin-bottom: 0.35rem; color: var(--ink-muted); font-size: 0.875rem; }
+    input[type=text], input[type=number], input[type=date], select, textarea {
+      width: 100%;
+      padding: 0.5rem 0.6rem;
+      border: 1px solid var(--line-strong);
+      border-radius: 2px;
+      margin-bottom: 1rem;
+      background: var(--sheet);
+      font-family: inherit;
+      font-size: 0.95rem;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(26,95,74,.15);
+    }
+    button, .btn {
+      display: inline-block;
+      padding: 0.5rem 1rem;
+      background: var(--primary);
+      color: #fff;
+      border: 1px solid var(--primary-hover);
+      border-radius: 2px;
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-family: inherit;
+      font-weight: 500;
+    }
+    button:hover, .btn:hover { background: var(--primary-hover); color: #fff; }
+    .btn-secondary { background: var(--ink-muted); border-color: var(--line-strong); }
+    .btn-secondary:hover { background: var(--ink); }
+    .alert { padding: 0.75rem 1rem; border-radius: 2px; margin-bottom: 1rem; border: 1px solid; }
+    .alert-info { background: #e8f2ef; color: #0f4435; border-color: #b8d4cb; }
+    .alert-warning { background: #fef7ed; color: #92400e; border-color: #e8d4b8; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+      border: 1px solid var(--line-strong);
+    }
+    th, td {
+      padding: 0.5rem 0.65rem;
+      text-align: left;
+      border: 1px solid var(--line);
+      vertical-align: top;
+    }
+    th {
+      background: var(--ledger-head);
+      color: var(--ink);
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: none;
+      letter-spacing: 0.02em;
+    }
+    tbody tr:nth-child(even) { background: var(--ledger-stripe); }
+    tbody tr:hover { background: #f0ede6; }
+    td.numeric, .numeric { text-align: right; font-variant-numeric: tabular-nums; }
+    .help { font-size: 0.8rem; color: var(--ink-muted); margin-top: 0.25rem; }
+  </style>
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+  <nav>
+    <a href="{{ url_for('transactions.list_transactions') }}" style="font-weight:600;margin-right:1.5rem;">あおいろサポート</a>
+    <a href="{{ url_for('transactions.list_transactions') }}">取引一覧</a>
+    <a href="{{ url_for('transactions.new_transaction') }}">取引を登録</a>
+    <a href="{{ url_for('hints.index') }}">科目のヒント</a>
+    <a href="{{ url_for('knowledge.index') }}">知識・豆知識</a>
+    <a href="{{ url_for('recurring.index') }}">固定費</a>
+    <a href="{{ url_for('reports.pl_bs') }}">P/L・B/S</a>
+    <a href="{{ url_for('reports.receipts') }}">領収書まとめ</a>
+    <a href="{{ url_for('settings.index') }}">設定</a>
+  </nav>
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

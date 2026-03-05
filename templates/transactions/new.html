@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+{% block title %}取引を登録 - 青色申告 帳簿ツール{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>取引を登録</h1>
+  <p>取引タイプを選んでから入力してください。科目が分からないときは<a href="{{ url_for('hints.index') }}">科目のヒント一覧</a>を参照してください。</p>
+  <p>
+    {% for tkey, tlabel in transaction_types %}
+    <a href="{{ url_for('transactions.new_transaction', type=tkey) }}" class="btn {% if transaction_type == tkey %}btn-secondary{% endif %}">{{ tlabel }}</a>
+    {% endfor %}
+  </p>
+
+  <form method="post" action="{{ url_for('transactions.create_transaction') }}" id="transaction-form" enctype="multipart/form-data">
+    <input type="hidden" name="transaction_type" value="{{ transaction_type }}">
+
+    <label for="date">日付 <span class="help">必須</span></label>
+    <input type="date" name="date" id="date" value="{{ request.args.get('date', '') }}" required>
+
+    <label for="amount">金額（円） <span class="help">必須</span></label>
+    <input type="number" name="amount" id="amount" min="1" required>
+
+    {% if transaction_type == 'sales' or transaction_type == 'misc_income' %}
+    <label for="debit_account_id">入金方法（借方）</label>
+    <select name="debit_account_id" id="debit_account_id" required>
+      {% for a in asset_accounts %}
+      <option value="{{ a.id }}">{{ a.name }}</option>
+      {% endfor %}
+    </select>
+    <label for="payee">取引先</label>
+    <input type="text" name="payee" id="payee" placeholder="任意">
+    <label for="description">摘要</label>
+    <input type="text" name="description" id="description" placeholder="任意">
+    {% endif %}
+
+    {% if transaction_type == 'expense' %}
+    <label for="payee">取引先 <span class="help">入力すると勘定科目の提案が出ます</span></label>
+    <input type="text" name="payee" id="payee" placeholder="店名・会社名など">
+    <div id="suggestion-area" class="alert alert-info" style="display:none;"></div>
+    <label for="expense_account_id">勘定科目（経費） <span class="help">必須</span></label>
+    <p class="help">よくある経費:</p>
+    <p>
+      {% for a in common_expense_accounts %}
+      <button type="button" class="btn-expense-quick" data-account-id="{{ a.id }}" data-name="{{ a.name }}">{{ a.name }}</button>
+      {% endfor %}
+    </p>
+    <select name="expense_account_id" id="expense_account_id" required>
+      <option value="">選択してください</option>
+      {% for a in expense_accounts %}
+      <option value="{{ a.id }}">{{ a.name }}</option>
+      {% endfor %}
+    </select>
+    <div id="consistency-alert" class="alert alert-warning" style="display:none;"></div>
+    <label for="payment_method">支払方法</label>
+    <select name="payment_method" id="payment_method">
+      <option value="cash">現金</option>
+      <option value="transfer">銀行振込・引き落とし</option>
+      <option value="credit">クレジットカード</option>
+      <option value="qr">QR決済</option>
+    </select>
+    <div id="transfer-account-area">
+      <label for="credit_account_id_expense">出金口座（貸方）</label>
+      <select name="credit_account_id" id="credit_account_id_expense">
+        {% for a in asset_accounts %}
+        <option value="{{ a.id }}" {% if a.code == '120' %}selected{% endif %}>{{ a.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div id="qr-source-area" style="display:none;">
+      <label for="qr_source">QR決済の引き落とし元</label>
+      <select name="qr_source" id="qr_source">
+        <option value="bank">銀行口座</option>
+        <option value="credit">クレジットカード</option>
+      </select>
+    </div>
+    <label for="description">摘要</label>
+    <input type="text" name="description" id="description">
+    <label><input type="checkbox" name="receipt_kept" value="1"> 領収書保管済</label>
+    <label for="receipt_memo">領収書の保管場所メモ</label>
+    <input type="text" name="receipt_memo" id="receipt_memo" placeholder="例：自宅・月別ファイル">
+    <label for="receipt_file">領収書画像（任意）</label>
+    {% if pending_receipt_filename %}
+    <p class="alert alert-info">領収書を選択済み: <strong>{{ pending_receipt_filename }}</strong> <a href="{{ url_for('transactions.new_clear_pending_receipt') }}">解除</a></p>
+    {% else %}
+    <input type="file" name="receipt_file" id="receipt_file" accept=".jpg,.jpeg,.png,.gif,.webp,image/*">
+    {% if drive_receipt_available %}
+    <p class="help">JPG / PNG / GIF / WebP、10MBまで。または <a href="{{ url_for('transactions.new_pick_receipt_from_drive') }}{% if saved_receipt_folder_id %}?folder_id={{ saved_receipt_folder_id }}{% endif %}">ドライブのフォルダから選択</a>（フォルダIDは記憶されます）</p>
+    {% else %}
+    <p class="help">JPG / PNG / GIF / WebP、10MBまで。経費の証拠として添付できます。</p>
+    {% endif %}
+    {% endif %}
+    {% endif %}
+
+    {% if transaction_type == 'transfer' %}
+    <label for="debit_account_id">振替元（借方）</label>
+    <select name="debit_account_id" id="debit_account_id" required>
+      {% for a in all_accounts_transfer %}
+      <option value="{{ a.id }}">{{ a.name }}</option>
+      {% endfor %}
+    </select>
+    <label for="credit_account_id">振替先（貸方）</label>
+    <select name="credit_account_id" id="credit_account_id" required>
+      {% for a in all_accounts_transfer %}
+      <option value="{{ a.id }}">{{ a.name }}</option>
+      {% endfor %}
+    </select>
+    <label for="description">摘要</label>
+    <input type="text" name="description" id="description">
+    {% endif %}
+
+    {% if transaction_type == 'loan' %}
+    <label>種別</label>
+    <label><input type="radio" name="loan_type" value="borrow" checked> 借入</label>
+    <label><input type="radio" name="loan_type" value="repay"> 返済</label>
+    <div id="loan-borrow">
+      <label for="debit_account_id">入金口座（借方）</label>
+      <select name="debit_account_id">
+        {% for a in asset_accounts %}
+        <option value="{{ a.id }}">{{ a.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div id="loan-repay" style="display:none;">
+      <label for="credit_account_id">出金口座（貸方）</label>
+      <select name="credit_account_id">
+        {% for a in asset_accounts %}
+        <option value="{{ a.id }}">{{ a.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <label for="description">摘要</label>
+    <input type="text" name="description" id="description" placeholder="借入先など">
+    {% endif %}
+
+    {% if transaction_type == 'owner' %}
+    <label>種別</label>
+    <label><input type="radio" name="owner_type" value="owner_lend" checked> 事業主貸（事業→私用）</label>
+    <label><input type="radio" name="owner_type" value="owner_borrow"> 事業主借（私用→事業）</label>
+    <div id="owner-lend">
+      <label for="credit_account_id">出金口座（貸方）</label>
+      <select name="credit_account_id">
+        {% for a in asset_accounts %}
+        <option value="{{ a.id }}">{{ a.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div id="owner-borrow" style="display:none;">
+      <label for="debit_account_id">入金口座（借方）</label>
+      <select name="debit_account_id">
+        {% for a in asset_accounts %}
+        <option value="{{ a.id }}">{{ a.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <label for="description">摘要</label>
+    <input type="text" name="description" id="description">
+    {% endif %}
+
+    {% if transaction_type == 'other' %}
+    <label for="debit_account_id">借方勘定</label>
+    <select name="debit_account_id" id="debit_account_id" required>
+      {% for a in all_accounts_transfer %}
+      <option value="{{ a.id }}">{{ a.name }}</option>
+      {% endfor %}
+    </select>
+    <label for="credit_account_id">貸方勘定</label>
+    <select name="credit_account_id" id="credit_account_id" required>
+      {% for a in all_accounts_transfer %}
+      <option value="{{ a.id }}">{{ a.name }}</option>
+      {% endfor %}
+    </select>
+    <label for="description">摘要</label>
+    <input type="text" name="description" id="description">
+    {% endif %}
+
+    <p><button type="submit">登録する</button></p>
+  </form>
+</div>
+
+<div class="card">
+  <p class="help">領収書・レシートは月別・科目別にファイリングし、7年保存を推奨します。</p>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+  var transactionType = "{{ transaction_type }}";
+
+  if (transactionType === 'expense') {
+    var payeeEl = document.getElementById('payee');
+    var suggestionArea = document.getElementById('suggestion-area');
+    var expenseSelect = document.getElementById('expense_account_id');
+    var consistencyAlert = document.getElementById('consistency-alert');
+    var paymentMethod = document.getElementById('payment_method');
+    var qrSourceArea = document.getElementById('qr-source-area');
+    var qrSource = document.getElementById('qr_source');
+    var qrBankAccount = document.getElementById('qr-bank-account');
+
+    function suggestAccount() {
+      var payee = payeeEl && payeeEl.value ? payeeEl.value.trim() : '';
+      if (!payee) { suggestionArea.style.display = 'none'; return; }
+      fetch("{{ url_for('transactions.api_suggest_expense_account') }}?payee=" + encodeURIComponent(payee))
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.suggested_account) {
+            suggestionArea.innerHTML = data.message + ' <button type="button" class="btn" onclick="document.getElementById(\'expense_account_id\').value=\'' + data.suggested_account.id + '\'; document.getElementById(\'consistency-alert\').style.display=\'none\';">この科目で登録</button>';
+            suggestionArea.style.display = 'block';
+            expenseSelect.value = data.suggested_account.id;
+          } else {
+            suggestionArea.style.display = 'none';
+          }
+        });
+    }
+    if (payeeEl) {
+      payeeEl.addEventListener('blur', suggestAccount);
+      payeeEl.addEventListener('input', function() { setTimeout(suggestAccount, 300); });
+    }
+
+    document.querySelectorAll('.btn-expense-quick').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        expenseSelect.value = this.getAttribute('data-account-id');
+        consistencyAlert.style.display = 'none';
+      });
+    });
+
+    expenseSelect.addEventListener('change', function() {
+      var payee = payeeEl && payeeEl.value ? payeeEl.value.trim() : '';
+      if (!payee) { consistencyAlert.style.display = 'none'; return; }
+      var accountId = this.value;
+      if (!accountId) { consistencyAlert.style.display = 'none'; return; }
+      fetch("{{ url_for('transactions.api_check_expense_consistency') }}?payee=" + encodeURIComponent(payee) + "&account_id=" + accountId)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.consistent || !data.alert) {
+            consistencyAlert.style.display = 'none';
+          } else {
+            consistencyAlert.innerHTML = data.alert + (data.past_account ? ' <button type="button" class="btn" onclick="document.getElementById(\'expense_account_id\').value=\'' + data.past_account.id + '\'; this.parentElement.style.display=\'none\';">過去の科目に合わせる</button>' : '');
+            consistencyAlert.style.display = 'block';
+          }
+        });
+    });
+
+    var transferAccountArea = document.getElementById('transfer-account-area');
+    function togglePaymentFields() {
+      var method = paymentMethod.value;
+      var isQr = method === 'qr';
+      var isTransfer = method === 'transfer';
+      qrSourceArea.style.display = isQr ? 'block' : 'none';
+      if (transferAccountArea) {
+        transferAccountArea.style.display = (isTransfer || (isQr && qrSource && qrSource.value === 'bank')) ? 'block' : 'none';
+      }
+    }
+    paymentMethod.addEventListener('change', togglePaymentFields);
+    if (qrSource) qrSource.addEventListener('change', togglePaymentFields);
+    togglePaymentFields();
+  }
+
+  if (transactionType === 'loan') {
+    var borrow = document.getElementById('loan-borrow');
+    var repay = document.getElementById('loan-repay');
+    document.querySelectorAll('input[name="loan_type"]').forEach(function(r) {
+      r.addEventListener('change', function() {
+        var isBorrow = this.value === 'borrow';
+        if (borrow) borrow.style.display = isBorrow ? 'block' : 'none';
+        if (repay) repay.style.display = isBorrow ? 'none' : 'block';
+      });
+    });
+  }
+
+  if (transactionType === 'owner') {
+    var lend = document.getElementById('owner-lend');
+    var borrow = document.getElementById('owner-borrow');
+    document.querySelectorAll('input[name="owner_type"]').forEach(function(r) {
+      r.addEventListener('change', function() {
+        var isLend = this.value === 'owner_lend';
+        if (lend) lend.style.display = isLend ? 'block' : 'none';
+        if (borrow) borrow.style.display = isLend ? 'none' : 'block';
+      });
+    });
+  }
+
+  if (!document.getElementById('date').value) {
+    var d = new Date();
+    document.getElementById('date').value = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+})();
+</script>
+{% endblock %}

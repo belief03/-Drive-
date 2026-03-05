@@ -1,0 +1,23 @@
+[
+  {"example": "印刷・コピー", "account": "消耗品費", "note": "オフィスでの印刷代"},
+  {"example": "印刷（少額・雑多）", "account": "その他", "note": "領収書が「雑費」のときもその他で計上可"},
+  {"example": "切手・はがき", "account": "通信費", "note": ""},
+  {"example": "スマホ・携帯料金", "account": "通信費", "note": ""},
+  {"example": "インターネット料金", "account": "通信費", "note": ""},
+  {"example": "電車・バス・タクシー", "account": "旅費交通費", "note": ""},
+  {"example": "ガソリン", "account": "旅費交通費", "note": ""},
+  {"example": "駐車場", "account": "旅費交通費", "note": ""},
+  {"example": "文房具・用紙", "account": "消耗品費", "note": ""},
+  {"example": "名刺", "account": "消耗品費", "note": ""},
+  {"example": "家賃・地代", "account": "地代家賃", "note": "事務所・自宅の事業用按分もこの科目"},
+  {"example": "電気・ガス・水道", "account": "水道光熱費", "note": "事業用按分する場合は家事按分をメモに"},
+  {"example": "接待・飲食（取引先）", "account": "接待交際費", "note": ""},
+  {"example": "振込手数料", "account": "支払手数料", "note": ""},
+  {"example": "決済手数料（PayPay等）", "account": "支払手数料", "note": ""},
+  {"example": "外注・発注先への支払", "account": "外注費", "note": ""},
+  {"example": "広告・宣伝", "account": "広告宣伝費", "note": "ネット広告・チラシなど"},
+  {"example": "印紙", "account": "租税公課", "note": ""},
+  {"example": "固定資産税（事業用）", "account": "租税公課", "note": ""},
+  {"example": "保険料", "account": "損害保険料", "note": ""},
+  {"example": "少額の雑多な経費", "account": "その他", "note": "どの科目にも当てはまらないとき"}
+]

@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}設定 - 青色申告 帳簿ツール{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>設定</h1>
+
+  {% if settings_error %}
+  <p class="alert alert-warning">設定の読み込み中にエラーが発生しました: {{ settings_error }}。ターミナルで <code>python app.py</code> を実行している場合はログを確認してください。</p>
+  {% endif %}
+
+  {% if request.args.get('drive') == 'connected' %}
+  <p class="alert alert-info">Googleドライブと連携しました。</p>
+  {% endif %}
+  {% if request.args.get('drive') == 'no_config' %}
+  <p class="alert alert-warning">Googleドライブ連携を使うには、環境変数 GOOGLE_DRIVE_CLIENT_ID と GOOGLE_DRIVE_CLIENT_SECRET を設定してください。</p>
+  {% endif %}
+  {% if request.args.get('drive') == 'error' %}
+  <p class="alert alert-warning"><strong>連携の開始に失敗しました。</strong> 下記のエラー内容を手がかりに、クライアントID・シークレット・リダイレクトURI（設定画面に表示されているURL）を確認してください。Google Cloud の「認可済みのリダイレクト URI」にそのURLが追加されていれば、ターミナルのログにも詳細が出ます。</p>
+  <p class="help" style="word-break:break-all;">エラー: {{ request.args.get('msg', '') }}</p>
+  {% endif %}
+  {% if request.args.get('drive') == 'backup_ok' %}
+  <p class="alert alert-info">バックアップをGoogleドライブに保存しました（帳簿バックアップ フォルダ）。</p>
+  {% endif %}
+  {% if request.args.get('drive') == 'backup_failed' %}
+  <p class="alert alert-warning">バックアップの保存に失敗しました。{{ request.args.get('msg', '') }}</p>
+  {% endif %}
+  {% if request.args.get('drive') == 'not_connected' %}
+  <p class="alert alert-warning">先にGoogleドライブと連携してください。</p>
+  {% endif %}
+  {% if request.args.get('drive') == 'callback_failed' %}
+    {% if request.args.get('reason') == 'session' %}
+  <p class="alert alert-warning">認可の途中でセッションが一致しませんでした。<strong>アドレスバーを「http://127.0.0.1:5000」にし</strong>、この画面を開き直してから「連携する」を押し直してください。localhost で開いていた場合は、<a href="http://127.0.0.1:5000/settings/">http://127.0.0.1:5000/settings/</a> をクリックして 127.0.0.1 で開き直せます。</p>
+    {% elif request.args.get('reason') == 'redirect_uri' %}
+  <p class="alert alert-warning">リダイレクトURIの不一致です。Google Cloud Console の「認証情報」→ 該当の OAuth クライアント ID → 「認可済みのリダイレクト URI」に、<strong>設定画面に表示されているコールバックURL</strong>が一字一句同じで登録されているか確認してください。</p>
+    {% elif request.args.get('reason') == 'invalid_grant' %}
+  <p class="alert alert-warning">認可コードの有効期限切れか、既に使用済みです。Google の認可画面で「許可」したあと、<strong>そのまま戻ってきた画面で処理が完了するまでリロードや再実行をしないでください。</strong>もう一度「連携する」から最初からやり直してください。</p>
+    {% else %}
+  <p class="alert alert-warning">トークン取得に失敗しました。下記の「Google からのエラー」を手がかりに、リダイレクトURI・クライアントID・シークレットを確認してください。</p>
+    {% endif %}
+    {% if request.args.get('msg') %}
+  <p class="help" style="word-break:break-all; margin-top:0.5rem;"><strong>Google からのエラー:</strong> {{ request.args.get('msg') }}</p>
+    {% endif %}
+  {% endif %}
+
+  <h2>業種</h2>
+  <p>状況が変わったタイミングで再選択できます。</p>
+  <form method="post" action="{{ url_for('settings.update_industry') }}">
+    <label for="industry">業種</label>
+    <select name="industry" id="industry" required>
+      {% for ind in industries %}
+      <option value="{{ ind.name }}" {% if current == ind.name %}selected{% endif %}>{{ ind.name }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit">保存</button>
+  </form>
+
+  <h2>固定費の自動反映</h2>
+  <p class="help">ONにすると、固定費ページを開いたときに「今月分がまだ反映されていない」場合だけ、自動で今月の固定費を取引に反映します。毎月1回は固定費ページを開く必要があります。</p>
+  <form method="post" action="{{ url_for('settings.update_auto_apply_recurring') }}">
+    <label><input type="checkbox" name="auto_apply_recurring" value="1" {% if auto_apply_recurring %}checked{% endif %}> 固定費を毎月自動反映する</label>
+    <button type="submit">保存</button>
+  </form>
+
+  <h2>Googleドライブ連携</h2>
+  <p class="help">連携すると、取引CSVと領収書まとめPDFをドライブの「帳簿バックアップ」フォルダに保存できます。バックアップ・7年保存の一環としてご利用ください。設定方法は docs/Googleドライブ連携.md を参照してください。</p>
+  {% if drive_enabled %}
+    {% if drive_connected %}
+    <p class="alert alert-info">連携済みです。</p>
+    <form method="post" action="{{ url_for('settings.drive_backup') }}" style="margin-bottom:1rem;">
+      <label for="backup_year">バックアップする年</label>
+      <select name="year" id="backup_year">
+        {% for y in range(2022, 2031) %}
+        <option value="{{ y }}" {% if y == current_year %}selected{% endif %}>{{ y }}年</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn">バックアップをドライブに保存</button>
+    </form>
+    <form method="post" action="{{ url_for('settings.drive_disconnect') }}" onsubmit="return confirm('連携を解除しますか？');">
+      <button type="submit" class="btn btn-secondary">連携を解除する</button>
+    </form>
+    {% else %}
+    <p class="help">Google Cloud の「認証情報」→ OAuth 2.0 クライアント ID → 「認可済みのリダイレクト URI」に、<strong>次のURLを追加</strong>してください。127.0.0.1 / localhost / 同じPCのIP など、使うアドレスごとに複数登録できます。</p>
+    <p><code style="word-break:break-all;">{{ drive_redirect_uri }}</code></p>
+    <p><a href="{{ url_for('settings.drive_connect') }}" class="btn">Googleドライブと連携する</a></p>
+    {% endif %}
+  {% else %}
+  <p class="help">クライアントID・シークレットを設定すると「連携する」が表示されます。環境変数 GOOGLE_DRIVE_CLIENT_ID / GOOGLE_DRIVE_CLIENT_SECRET を設定するか、instance フォルダに google_drive_client_id.txt と google_drive_client_secret.txt（各1行目に値を記載）を置いてください。詳しくは docs/Googleドライブ連携.md を参照。</p>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}CSV取込 確認 - 青色申告 帳簿ツール{% endblock %}
+{% block extra_css %}
+<style>tr.duplicate { background: #fef3c7; } table select { min-width: 10rem; }</style>
+{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>CSV取込 確認</h1>
+  <p class="help">各行の勘定科目（経費）と支払口座を確認してください。重複と表示されている行は登録されません。スキップにチェックを付けた行も登録されません。</p>
+  <form method="post" action="{{ url_for('csv_import.preview') }}">
+    <label for="default_credit_account_id">共通の支払口座（貸方）</label>
+    <select name="default_credit_account_id" id="default_credit_account_id">
+      {% for a in asset_accounts %}
+      <option value="{{ a.id }}" {% if a.code == '120' %}selected{% endif %}>{{ a.name }}</option>
+      {% endfor %}
+    </select>
+    <table>
+      <thead>
+        <tr>
+          <th>日付</th>
+          <th>金額</th>
+          <th>取引先・内容</th>
+          <th>勘定科目（経費）</th>
+          <th>支払口座（貸方）</th>
+          <th>スキップ</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in candidates %}
+        {% set i = loop.index0 %}
+        <tr class="{{ 'duplicate' if c.duplicate else '' }}">
+          <td>{{ c.date }}</td>
+          <td>{{ c.amount | int }}円</td>
+          <td>{{ c.payee or '—' }}</td>
+          <td>
+            {% if c.duplicate %}
+            <span class="help">重複のため登録しません</span>
+            {% else %}
+            <select name="expense_account_id_{{ i }}" data-row="{{ i }}" data-payee="{{ c.payee or '' }}">
+              {% for a in expense_accounts %}
+              <option value="{{ a.id }}">{{ a.name }}</option>
+              {% endfor %}
+            </select>
+            {% endif %}
+          </td>
+          <td>
+            {% if not c.duplicate %}
+            <select name="credit_account_id_{{ i }}">
+              {% for a in asset_accounts %}
+              <option value="{{ a.id }}" {% if a.code == '120' %}selected{% endif %}>{{ a.name }}</option>
+              {% endfor %}
+            </select>
+            {% endif %}
+          </td>
+          <td>
+            {% if not c.duplicate %}
+            <label><input type="checkbox" name="skip_{{ i }}" value="1"> スキップ</label>
+            {% else %}—{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p>
+      <button type="submit" class="btn">選択した行を登録する</button>
+      <button type="submit" formaction="{{ url_for('csv_import.cancel') }}" formmethod="post" class="btn btn-secondary">キャンセル</button>
+    </p>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+  var apiUrl = "{{ url_for('transactions.api_suggest_expense_account') }}";
+  document.querySelectorAll("select[data-payee]").forEach(function(sel) {
+    var payee = sel.getAttribute("data-payee");
+    if (!payee) return;
+    fetch(apiUrl + "?payee=" + encodeURIComponent(payee))
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.suggested_account && data.suggested_account.id) {
+          sel.value = data.suggested_account.id;
+        }
+      });
+  });
+})();
+</script>
+{% endblock %}

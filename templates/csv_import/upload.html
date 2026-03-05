@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}CSV取込 - 青色申告 帳簿ツール{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>CSV取込</h1>
+  <p class="help">銀行・クレジットカードの明細CSVをアップロードすると、経費の取引候補を一括で作成できます。次の画面で勘定科目を割り当ててから登録します。重複する取引は自動でスキップされます。</p>
+  {% if from_drive_filename %}
+  <p class="alert alert-info">Googleドライブから取得: <strong>{{ from_drive_filename }}</strong>。列を指定して「読み込む」を押してください。</p>
+  {% endif %}
+  {% if error %}
+  <p class="alert alert-warning">{{ error }}</p>
+  {% endif %}
+  <form method="post" action="{{ url_for('csv_import.upload') }}" enctype="multipart/form-data">
+    {% if not from_drive_filename %}
+    <label for="csv_file">CSVファイル</label>
+    <input type="file" name="csv_file" id="csv_file" accept=".csv" required>
+    {% endif %}
+    <label><input type="checkbox" name="has_header" value="1" checked> 1行目はヘッダー（項目名）</label>
+    <p class="help">列の指定（0始まり）</p>
+    <label for="col_date">日付の列</label>
+    <input type="number" name="col_date" id="col_date" min="0" value="0">
+    <label for="col_amount">金額の列</label>
+    <input type="number" name="col_amount" id="col_amount" min="0" value="1">
+    <label for="col_payee">内容・取引先の列</label>
+    <input type="number" name="col_payee" id="col_payee" min="0" value="2">
+    <p><button type="submit" class="btn">読み込む</button></p>
+  </form>
+  <p class="help"><a href="{{ url_for('csv_import.from_drive') }}">GoogleドライブのフォルダからCSVを選択して取込</a></p>
+  <p><a href="{{ url_for('transactions.list_transactions') }}">取引一覧に戻る</a></p>
+</div>
+{% endblock %}

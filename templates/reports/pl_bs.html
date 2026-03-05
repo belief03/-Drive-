@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}損益計算書・貸借対照表 - 青色申告 帳簿ツール{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>損益計算書・貸借対照表</h1>
+  <form method="get" action="{{ url_for('reports.pl_bs') }}" style="margin-bottom:1rem;">
+    <label for="year">年度</label>
+    <select name="year" id="year" onchange="this.form.submit()">
+      {% for y in range(year - 2, year + 2) %}
+      <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}年</option>
+      {% endfor %}
+    </select>
+  </form>
+
+  <h2>{{ year }}年 損益計算書（P/L）</h2>
+  <table>
+    <thead><tr><th>科目</th><th class="numeric">金額（円）</th></tr></thead>
+    <tbody>
+      {% for r in revenue %}
+      {% if r.total and r.total != 0 %}
+      <tr><td>{{ r.name }}</td><td class="numeric">{{ r.total | int }}</td></tr>
+      {% endif %}
+      {% endfor %}
+      <tr><td><strong>収益合計</strong></td><td class="numeric"><strong>{{ total_revenue | int }}</strong></td></tr>
+      {% for e in expense %}
+      {% if e.total and e.total != 0 %}
+      <tr><td>{{ e.name }}</td><td class="numeric">{{ e.total | int }}</td></tr>
+      {% endif %}
+      {% endfor %}
+      <tr><td><strong>費用合計</strong></td><td class="numeric"><strong>{{ total_expense | int }}</strong></td></tr>
+      <tr><td><strong>利益</strong></td><td class="numeric"><strong>{{ profit | int }}</strong></td></tr>
+    </tbody>
+  </table>
+
+  <h2>{{ year }}年 貸借対照表（B/S）</h2>
+  <table>
+    <thead><tr><th>科目</th><th class="numeric">金額（円）</th></tr></thead>
+    <tbody>
+      <tr><td colspan="2"><strong>資産の部</strong></td></tr>
+      {% for code, name, bal in assets %}
+      <tr><td>{{ name }}</td><td class="numeric">{{ bal }}</td></tr>
+      {% endfor %}
+      <tr><td colspan="2"><strong>負債の部</strong></td></tr>
+      {% for code, name, bal in liabilities %}
+      <tr><td>{{ name }}</td><td class="numeric">{{ bal }}</td></tr>
+      {% endfor %}
+      <tr><td colspan="2"><strong>純資産の部</strong></td></tr>
+      {% for code, name, bal in equity %}
+      <tr><td>{{ name }}</td><td class="numeric">{{ bal }}</td></tr>
+      {% endfor %}
+      {% for code, name, bal in owner_balance %}
+      <tr><td>{{ name }}</td><td class="numeric">{{ bal }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p>
+    <a href="{{ url_for('reports.export_csv', year=year) }}" class="btn">取引一覧をCSVエクスポート</a>
+  </p>
+</div>
+{% endblock %}

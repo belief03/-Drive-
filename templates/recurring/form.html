@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}{% if item %}固定費を修正{% else %}固定費を追加{% endif %} - 青色申告 帳簿ツール{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>{% if item %}固定費を修正{% else %}固定費を追加{% endif %}</h1>
+  <p class="help">毎月同じ金額で計上する経費を登録します。「今月の固定費を反映」で指定月の取引を一括作成できます。</p>
+  <form method="post" action="{% if item %}{{ url_for('recurring.edit', id=item.id) }}{% else %}{{ url_for('recurring.new') }}{% endif %}">
+    <label for="name">名称 <span class="help">必須（例: 通信費・家賃）</span></label>
+    <input type="text" name="name" id="name" value="{{ item.name if item else '' }}" required>
+
+    <label for="amount">金額（円） <span class="help">必須</span></label>
+    <input type="number" name="amount" id="amount" min="1" value="{{ item.amount if item else '' }}" required>
+
+    <label for="debit_account_id">勘定科目（経費）</label>
+    <select name="debit_account_id" id="debit_account_id" required>
+      {% for a in expense_accounts %}
+      <option value="{{ a.id }}" {% if item and item.debit_account_id == a.id %}selected{% elif not item and a.code == '650' %}selected{% endif %}>{{ a.name }}</option>
+      {% endfor %}
+    </select>
+
+    <label for="credit_account_id">支払方法（貸方・口座）</label>
+    <select name="credit_account_id" id="credit_account_id" required>
+      {% for a in asset_accounts %}
+      <option value="{{ a.id }}" {% if item and item.credit_account_id == a.id %}selected{% elif not item and a.code == '120' %}selected{% endif %}>{{ a.name }}</option>
+      {% endfor %}
+    </select>
+
+    <label for="payee">取引先（任意）</label>
+    <input type="text" name="payee" id="payee" value="{{ item.payee if item else '' }}" placeholder="例: 〇〇通信">
+
+    <label for="description">摘要（任意）</label>
+    <input type="text" name="description" id="description" value="{{ item.description if item else '' }}" placeholder="例: 月額料金">
+
+    <label for="day_of_month">毎月の計上日（目安） <span class="help">1〜28のうち指定。実際の引き落とし日は曜日・休業日でずれることがあります。反映後に取引一覧から日付を修正できます。</span></label>
+    <input type="number" name="day_of_month" id="day_of_month" min="1" max="28" value="{{ item.day_of_month if item else 1 }}">
+
+    {% if item %}
+    <label><input type="checkbox" name="is_active" value="1" {% if item.is_active %}checked{% endif %}> 有効（無効にすると反映対象外）</label>
+    {% endif %}
+
+    <p>
+      <button type="submit">{% if item %}更新する{% else %}登録する{% endif %}</button>
+      <a href="{{ url_for('recurring.index') }}" class="btn btn-secondary">キャンセル</a>
+    </p>
+  </form>
+</div>
+{% endblock %}

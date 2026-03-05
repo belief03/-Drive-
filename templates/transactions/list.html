@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}取引一覧 - 青色申告 帳簿ツール{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>取引一覧</h1>
+  <p class="help">貸方が「未払金」の経費は、実際に支払い済みなら「払い済みにする」で口座を選んで未払い→払い済みに更新できます。</p>
+  <form method="get" action="{{ url_for('transactions.list_transactions') }}" style="margin-bottom:1rem; display:flex; flex-wrap:wrap; align-items:center; gap:0.5rem;">
+    <label for="filter_from">期間</label>
+    <input type="date" name="from" id="filter_from" value="{{ filter_from or '' }}">
+    <span>〜</span>
+    <input type="date" name="to" id="filter_to" value="{{ filter_to or '' }}">
+    <button type="submit" class="btn btn-secondary">絞り込む</button>
+    {% if filter_from or filter_to %}
+    <a href="{{ url_for('transactions.list_transactions') }}" class="btn btn-secondary">解除</a>
+    {% endif %}
+  </form>
+  <p>
+    <a href="{{ url_for('transactions.new_transaction') }}" class="btn">取引を登録</a>
+    <a href="{{ url_for('csv_import.upload') }}" class="btn btn-secondary">CSV取込</a>
+    <a href="{{ url_for('transactions.receipts_from_drive') }}" class="btn btn-secondary">領収書をドライブから取込</a>
+    <a href="{{ url_for('transactions.export_csv', from=filter_from or '', to=filter_to or '') }}" class="btn btn-secondary">CSVエクスポート</a>
+    <a href="{{ url_for('transactions.export_to_sheets', from=filter_from or '', to=filter_to or '') }}" class="btn btn-secondary">スプレッドシートに共有</a>
+  </p>
+  {% if show_sheets_created and sheets_created_url %}
+  <p class="alert alert-info">Googleスプレッドシートを作成しました。<a href="{{ sheets_created_url }}" target="_blank" rel="noopener">スプレッドシートを開く</a></p>
+  {% endif %}
+  {% if request.args.get('sheets_error') %}
+  <p class="alert alert-warning">
+    {% if request.args.get('sheets_error') == 'not_connected' %}Google連携がされていません。設定で「Googleドライブ連携」を有効にしてください。
+    {% elif request.args.get('sheets_error') == 'no_data' %}取引が1件もありません。データを登録してから再度お試しください。
+    {% elif request.args.get('sheets_error') == 'service' %}スプレッドシート用の接続に失敗しました。設定で連携を解除し、再度「連携する」から認可し直してください。
+    {% elif request.args.get('sheets_error') == 'create_failed' %}
+      {% if request.args.get('sheets_hint') == 'api_disabled' %}スプレッドシートの作成に失敗しました。<strong>Google Cloud Console</strong> で「Google Sheets API」が有効か確認してください。「APIとサービス」→「ライブラリ」→「Google Sheets API」→「有効にする」。
+      {% elif request.args.get('sheets_hint') == 'scope' %}スプレッドシートの作成に失敗しました。設定で「連携を解除」→「連携する」をやり直し、認可画面で<strong>スプレッドシートへのアクセス</strong>を許可してください。
+      {% elif request.args.get('sheets_hint') == 'quota' %}スプレッドシートの作成に失敗しました。APIの利用制限に達している可能性があります。しばらく時間をおいて再度お試しください。
+      {% else %}スプレッドシートの作成に失敗しました。ターミナルで <code>python app.py</code> を実行している場合はエラー内容が表示されます。Google Cloud で「Google Sheets API」を有効にし、設定で「連携を解除」→「連携する」でスプレッドシートの権限を付与しているか確認してください。
+      {% endif %}
+    {% else %}スプレッドシートの共有でエラーが発生しました。{% endif %}
+  </p>
+  {% endif %}
+  {% if 'imported' in request.args %}
+  <p class="alert alert-info">CSV取込: {{ request.args.get('imported') }}件を登録しました。{% if request.args.get('skipped_dup') != '0' and request.args.get('skipped_dup') %}（重複のため{{ request.args.get('skipped_dup') }}件スキップ）{% endif %}</p>
+  {% endif %}
+  {% if request.args.get('deleted') == '1' %}
+  <p class="alert alert-info">取引を削除しました。</p>
+  {% endif %}
+  <table>
+    <thead>
+      <tr>
+        <th>日付</th>
+        <th>取引タイプ</th>
+        <th>借方</th>
+        <th>貸方</th>
+        <th>金額</th>
+        <th>取引先</th>
+        <th>領収書</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in pagination.items %}
+      <tr>
+        <td>{{ t.date.strftime('%Y-%m-%d') if t.date else '' }}</td>
+        <td>{{ transaction_types.get(t.transaction_type, t.transaction_type) }}</td>
+        <td>{{ t.debit_account.name if t.debit_account else '' }}</td>
+        <td>{{ t.credit_account.name if t.credit_account else '' }}</td>
+        <td class="numeric">{{ t.amount | int }}円</td>
+        <td>{{ t.payee or '' }}</td>
+        <td>{% if t.receipt_kept %}○{% endif %}{% if t.receipt_path %} <a href="{{ url_for('transactions.serve_receipt', id=t.id) }}" target="_blank" rel="noopener">画像</a>{% endif %}</td>
+        <td>
+          <a href="{{ url_for('transactions.edit_transaction', id=t.id) }}">修正</a>
+          <form method="post" action="{{ url_for('transactions.delete_transaction', id=t.id) }}" style="display:inline; margin-left:0.5rem;" onsubmit="return confirm('この取引を削除しますか？');">
+            <button type="submit" class="btn btn-secondary" style="padding:0.2rem 0.5rem; font-size:0.8rem;">削除</button>
+          </form>
+          {% if t.transaction_type == 'expense' and t.credit_account and t.credit_account.code == '330' %}
+          <form method="post" action="{{ url_for('transactions.mark_paid', id=t.id) }}" style="display:inline; margin-left:0.5rem;">
+            <select name="credit_account_id" style="width:auto; padding:0.2rem; font-size:0.8rem; margin-right:0.25rem;">
+              {% for a in asset_accounts %}
+              <option value="{{ a.id }}" {% if a.code == '120' %}selected{% endif %}>{{ a.name }}</option>
+              {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-secondary" style="padding:0.2rem 0.5rem; font-size:0.8rem;">払い済みにする</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="8">取引がありません。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if pagination.pages > 1 %}
+  <p>
+    {% if pagination.has_prev %}<a href="{{ url_for('transactions.list_transactions', page=pagination.prev_num) }}{% if filter_from or filter_to %}?{% if filter_from %}from={{ filter_from }}{% endif %}{% if filter_to %}{% if filter_from %}&{% endif %}to={{ filter_to }}{% endif %}{% endif %}">前へ</a>{% endif %}
+    {{ pagination.page }} / {{ pagination.pages }}
+    {% if pagination.has_next %}<a href="{{ url_for('transactions.list_transactions', page=pagination.next_num) }}{% if filter_from or filter_to %}?{% if filter_from %}from={{ filter_from }}{% endif %}{% if filter_to %}{% if filter_from %}&{% endif %}to={{ filter_to }}{% endif %}{% endif %}">次へ</a>{% endif %}
+  </p>
+  {% endif %}
+</div>
+{% endblock %}

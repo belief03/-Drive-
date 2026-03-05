@@ -1,0 +1,41 @@
+# ----- 絶対に GitHub に上げないもの -----
+# 認証情報（Google Drive 等）
+instance/google_drive_client_id.txt
+instance/google_drive_client_secret.txt
+# DB・アップロードファイル
+instance/*.db
+instance/receipts/
+instance/
+
+# ----- Python -----
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# ----- 仮想環境 -----
+venv/
+.venv/
+env/
+ENV/
+
+# ----- 環境変数（シークレットを書く場合） -----
+.env
+.env.local
+.env.*.local
+
+# ----- IDE・OS -----
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# ----- その他 -----
+*.log
+.cursor/
