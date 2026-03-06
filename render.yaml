@@ -1,0 +1,7 @@
+# Render Blueprint（このリポジトリからデプロイするときのデフォルト設定）
+# ダッシュボードで「Start Command」を上書きしている場合は、ここが使われないことがあります。
+services:
+  - type: web
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn wsgi:application
