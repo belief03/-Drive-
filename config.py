@@ -17,11 +17,19 @@ def _read_drive_secret_file(filename):
     return ""
 
 
+def _database_uri():
+    """本番では DATABASE_URL（PostgreSQL）。Render/Heroku は postgres:// を渡すことがあるので postgresql:// に統一。"""
+    url = os.environ.get("DATABASE_URL")
+    if url:
+        if url.startswith("postgres://"):
+            url = "postgresql://" + url[11:]
+        return url
+    return "sqlite:///" + os.path.join(BASE_DIR, "instance", "account_book.db").replace("\\", "/")
+
+
 class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY") or "dev-secret-change-in-production"
-    # instance フォルダは Flask が app.instance_path で用意する。相対パスにするとカレントで解決される。
-    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL") or \
-        "sqlite:///" + os.path.join(BASE_DIR, "instance", "account_book.db").replace("\\", "/")
+    SQLALCHEMY_DATABASE_URI = _database_uri()
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # 保存期間（年）。帳簿・領収書の推奨保存期間。
